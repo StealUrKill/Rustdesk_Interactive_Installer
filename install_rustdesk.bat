@@ -30,6 +30,7 @@ if '%errorlevel%' NEQ '0' (
 
 CD /D "%~dp0"
 CLS
+del "%~dp0rustdesk.ps1"
 IF NOT EXIST "%~dp0\rustdesk.ps1" GOTO COPYRUSTDESK
 
 :START
@@ -137,9 +138,28 @@ param(
 $TmpExe  = Join-Path $env:TEMP (Split-Path $Url -Leaf)
 $ExePath = "$env:ProgramFiles\RustDesk\rustdesk.exe"
 
-Write-Host "Downloading RustDesk from $Url"
+#Write-Host "Downloading RustDesk from $Url"
 #Invoke-WebRequest -Uri $Url -OutFile $TmpExe -UseBasicParsing
-Start-BitsTransfer -Source $Url -Destination $TmpExe -Priority Foreground
+#Start-BitsTransfer -Source $Url -Destination $TmpExe -Priority Foreground
+
+$os = [Environment]::OSVersion.Version
+if ($os.Major -eq 6) {
+	# Force TLS 1.2 on older Windows
+    Write-Host "Windows 7/8 detected - using WebClient (TLS 1.2 forced)..."
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    } catch {
+        [Net.ServicePointManager]::SecurityProtocol = 3072
+    }
+    (New-Object Net.WebClient).DownloadFile($Url, $TmpExe)
+
+}
+else {
+
+    Write-Host "Windows 10/11 detected - using BITS transfer..."
+    Start-BitsTransfer -Source $Url -Destination $TmpExe -Priority Foreground
+
+}
 
 Write-Host "Installing RustDesk silently..."
 Start-Process -FilePath $TmpExe -ArgumentList "--silent-install"
@@ -234,8 +254,9 @@ if ($svc) {
 }
 
 Write-Host "Starting RustDesk (detached via explorer.exe)..."
+Start-Sleep -Seconds 5
 Start-Process -FilePath "$env:WINDIR\explorer.exe" -ArgumentList "`"$ExePath`""
-Start-Sleep -Seconds 2
+Start-Sleep -Seconds 5
 
 
 if ($SetPassword) {
