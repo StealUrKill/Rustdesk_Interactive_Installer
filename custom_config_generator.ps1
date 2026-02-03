@@ -6,7 +6,7 @@ $rdapi  = Read-Host "Enter RustDesk API (example: https://yourdomain.com)"
 
 
 $json = '{"host":"' + $rdhost + '","key":"' + $rdkey + '","api":"' + $rdapi + '"}'
-$b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json))
+$b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json)).TrimEnd('=')
 $chars = $b64.ToCharArray()
 [Array]::Reverse($chars)
 $code = -join $chars
